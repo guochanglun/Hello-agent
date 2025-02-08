@@ -21,7 +21,7 @@ class DeepSeekLLM(LLM):
         import requests
         api_url = "https://api.deepseek.com/v1/chat/completions"  # 替换为实际API地址
         headers = {
-            "Authorization": "Bearer sk-84f2ed3716b948e4a6e20dfc2540b7ad",
+            "Authorization": "Bearer <Your Secret>",
             "Content-Type": "application/json"
         }
         data = {
