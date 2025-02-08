@@ -1,0 +1,4 @@
+# 初始化 OpenAI 模型
+llm = ChatOpenAI(openai_api_base='https://api.deepseek.com',
+             openai_api_key=SecretStr('sk-84f2ed3716b948e4a6e20dfc2540b7ad'),
+             model_name='deepseek-chat', verbose=True)
