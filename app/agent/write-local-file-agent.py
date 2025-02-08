@@ -1,38 +1,43 @@
+import os
+
 from langchain_core.messages import HumanMessage
 from langgraph.constants import START
 from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
-from pymysql import connect
 
-from model.model import GclModel
+from model.model import MyModel
 
 
+# assistant节点，Agent的大脑，调用大模型接口
 def assistant(state: MessagesState):
     message = llm_with_tools.invoke(state["messages"])
     return {"messages": [message]}
 
 
-def execute_sql_query(sql):
+# 工具一：当前目录
+def cur_dir():
     """
-    执行SQL查询语句并返回结果
-    :return: 查询结果
+    查询当前目录所在的绝对路径
+    :return: 当前目录所在的文件路径
     """
-    config = {
-        "host": '10.171.149.97',
-        "port": 5002,
-        "user": 'rds_erp_mdm',
-        "password": 'fvCH8zXh3cdTjf',
-        "database": 'finerp_mdm'
-    }
-
-    with connect(**config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(sql)
-            return cursor.fetchall()
+    return os.path.abspath(os.getcwd())
 
 
-tools = [execute_sql_query]
-llm = GclModel()
+# 工具二：写入文件
+def write_file(path, content):
+    """
+    写入文件
+    :param path: 文件路径（包括文件名）
+    :param content: 文件内容
+    :return: None
+    """
+    with open(path, 'w', encoding='utf-8') as file:
+        file.write(content)
+
+
+# 构造 LLM Model
+tools = [cur_dir, write_file]
+llm = MyModel()
 llm_with_tools = llm.bind_tools(tools)
 
 # 构造 Graph
@@ -45,13 +50,11 @@ builder.add_edge("tools", "assistant")
 graph = builder.compile()
 
 # Graph 可视化
-graph.get_graph().draw_png("./png/sql-query-agent.png")
+# graph.get_graph().draw_png("write-local-file.png")
 
 # 调用 Agent
 messages = graph.invoke(
-    {"messages": [
-        HumanMessage(content="查询mdm_customer_info的前10条数据，根据ID倒序，只需要id、customer_id、customer_name、status字段")]},
-    debug=True)
+    {"messages": [HumanMessage(content="写一段生日祝福，100字以内，并写入当前目录的生日祝福.txt文件中。")]})
 
 # 打印结果
 for m in messages['messages']:

@@ -1,12 +1,13 @@
 from langchain_core.messages import SystemMessage, HumanMessage
-from langgraph.constants import START
-from langgraph.graph import StateGraph, MessagesState
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.graph import MessagesState
+from langgraph.graph import START, StateGraph
+from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import tools_condition
 from mcp import StdioServerParameters
 from mcpadapt.core import MCPAdapt
 from mcpadapt.langchain_adapter import LangChainAdapter
 
-from model.model import GclModel
+from model.model import MyModel
 
 
 # 定义assistant节点
@@ -16,21 +17,22 @@ def assistant(state: MessagesState):
 
 
 with MCPAdapt(
+        # MCP 启动参数
         StdioServerParameters(
-            command='python',
-            args=['mysql_mcp_server.py'],
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-filesystem", "./"],
             env=None
         ),
         LangChainAdapter()
 ) as tools:
     # 定义模型
-    llm = GclModel()
+    llm = MyModel()
 
     # 绑定工具到 llm 对象
     llm_with_tools = llm.bind_tools(tools, parallel_tool_calls=False)
 
     # 系统消息
-    sys_msg = SystemMessage(content="你是一个经验丰富的数据分析师，可以熟练使用SQL语法，并懂得如何高效的查询数据。")
+    sys_msg = SystemMessage(content="你是一个智能助手，可以帮我完成一些操作。")
 
     # graph
     builder = StateGraph(MessagesState)
@@ -43,12 +45,11 @@ with MCPAdapt(
     builder.add_edge(START, "assistant")
     builder.add_conditional_edges("assistant", tools_condition)
     builder.add_edge("tools", "assistant")
-    react_graph = builder.compile(debug=True)
+    react_graph = builder.compile()
 
-    # prompt
-    print("============== 开始执行 ==============")
-    messages = [HumanMessage(content="查询mdm_material_info的前10条数据，根据ID倒序")]
-    messages = react_graph.invoke({"messages": messages}, debug=True)
+    # 会依此执行，创建文件夹 - 写入文件
+    messages = [HumanMessage(content="先创建一个文件夹 test，然后创建文件 a.txt 并写入内容：'你真棒！'，最后查询文件列表")]
+    messages = react_graph.invoke({"messages": messages})
 
     # 打印结果
     for m in messages['messages']:

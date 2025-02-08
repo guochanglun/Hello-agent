@@ -1,19 +1,14 @@
 import asyncio
-import logging
 
 from mcp import stdio_server
 from mcp.server import Server
 from mcp.types import Tool, TextContent
-
-# logging.basicConfig(level=logging.INFO)
-# logger = logging.getLogger("server")
 
 app = Server("file_mcp_server")
 
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
-    # logger.info("list_tools------------------------")
     return [
         Tool(
             name="read_file",
@@ -35,7 +30,6 @@ async def list_tools() -> list[Tool]:
 
 @app.call_tool()
 async def call_toos(name: str, arguments: dict) -> list[TextContent] | None:
-    # logger.info(f"call_toos------------------------ name: {name}, arguments: {arguments}")
     path = arguments.get("path")
     content = arguments.get("content")
     if name == "read_file":

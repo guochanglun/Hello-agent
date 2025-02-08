@@ -3,24 +3,24 @@ from langgraph.constants import END, START
 from langgraph.graph import StateGraph, MessagesState
 from langgraph.types import Command
 
-from model.model import GclModel
+from model.model import MyModel
 
 teacher_sys_msg = SystemMessage(content="""
-你是一名五年级的语文教师，可以指导学生修改作文，对学生作为给出修改建议，并给出评分，如果学生按照你的建议修改了，评分要对应的提高。
-
-输出结果为JSON，格式如下：
-{
-    "score": [作文评分，正整数],
-    "content": [作文评价]
-}
+    你是一名五年级的语文教师，可以指导学生修改作文，对学生作为给出修改建议，并给出评分，如果学生按照你的建议修改了，评分要对应的提高。
+    
+    输出结果为JSON，格式如下：
+    {
+        "score": [作文评分，正整数],
+        "content": [作文评价]
+    }
 """)
 
 student_sys_msg = SystemMessage(
     content="你的作文水平很差，会有语句不通顺、错别字等的问题，在老师的建议下不断完善作文，你水平太差了，不能一次根据老师的建议把作文改好")
 
 # model
-student_llm = GclModel()
-teacher_llm = GclModel()
+student_llm = MyModel()
+teacher_llm = MyModel()
 teacher_llm = teacher_llm.bind(response_format={"type": "json_object"})
 
 
