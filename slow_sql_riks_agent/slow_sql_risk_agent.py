@@ -1,21 +1,18 @@
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_openai import ChatOpenAI
 from langgraph.constants import START
-from langgraph.graph import StateGraph, END, MessagesState
+from langgraph.graph import StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
-from pydantic import SecretStr
 
-from slow_sql_risk_tool import extract_sql_from_file, detect_sql_anti_pattern, explain_sql_execution_plan, \
-    evaluate_table_size, save_to_file
+from model.model import GclModel
+from slow_sql_risk_tool import extract_sql_from_file, get_table_structure, save_to_file, get_table_indexes, \
+    get_table_row_count, explain_sql_query
 
 # 定义模型
-llm = ChatOpenAI(openai_api_base='https://api.deepseek.com',
-                 openai_api_key=SecretStr('sk-84f2ed3716b948e4a6e20dfc2540b7ad'),
-                 model_name='deepseek-chat', verbose=True)
+llm = GclModel()
 
 # 定义工具
-# tools = [extract_sql_from_file, detect_sql_anti_pattern, explain_sql_execution_plan, evaluate_table_size]
-tools = [extract_sql_from_file, detect_sql_anti_pattern, save_to_file]
+tools = [extract_sql_from_file, save_to_file, get_table_structure, get_table_indexes, get_table_row_count,
+         explain_sql_query]
 
 # 绑定工具
 llm_with_tools = llm.bind_tools(tools, parallel_tool_calls=False)
@@ -26,8 +23,9 @@ sys_msg = SystemMessage("""
 把最终结果写入markdown文件中，格式为表格，包含SQL语句、风险概率、风险描述、优化建议列。
 """)
 
+
 def assistant(state: MessagesState):
-    message = llm_with_tools.invoke([sys_msg] + state["messages"])
+    message = llm_with_tools.invoke(state["messages"])
     return {"messages": [message]}
 
 
@@ -45,8 +43,9 @@ workflow_state.add_edge("tools", "assistant")
 
 react_graph = workflow_state.compile()
 
-messages = [HumanMessage(content="分析这个文件中的SQL存在慢查询风险的概率，/Users/guochanglun/erp-mdm/erp-mdm-dao/src/main/resources/base/sql-mapper/BpmMapper.xml")]
-messages = react_graph.invoke({"messages": messages})
+messages = [sys_msg, HumanMessage(
+    content="分析这个文件中的SQL存在慢查询风险的概率，/Users/guochanglun/erp-mdm/erp-mdm-dao/src/main/resources/base/sql-mapper/BpmMapper.xml")]
+messages = react_graph.invoke({"messages": messages}, debug=True)
 
 ## 打印全部结果
 for m in messages['messages']:
