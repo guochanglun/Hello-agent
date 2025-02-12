@@ -3,14 +3,14 @@ from typing import List
 
 import pymysql
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.messages import HumanMessage
 
 from model.model import GclModel
 
 llm = GclModel()
 
 
-def extract_sql_from_file(file_path: str) -> BaseMessage:
+def extract_sql_from_file(file_path: str):
     """
     从文件中提取SQL语句
     Args:
@@ -20,16 +20,21 @@ def extract_sql_from_file(file_path: str) -> BaseMessage:
     """
     with open(file_path, 'r') as f:
         content = f.read()
-        message = HumanMessage(f"""
-            从下面中提取SQL语句，最终返回SQL列表。
-            ```
-            ${content}
-            ```
-            
-            json示例:
-            [sql 语句]
-            """)
-        response = llm.invoke([message])
+
+    message = HumanMessage(f"""
+        提取SQL语句，同时把 MyBatis 的标签处理下，返回正确语法的SQL列表。
+        原始内容如下，
+        {content}
+        
+        返回结果json结构:
+        {{
+            "result": [sql]
+        }}
+        """)
+    extract_sql_llm = llm.bind(response_format={"type": "json_object"})
+    response = extract_sql_llm.invoke([message])
+    # response = llm.invoke([message])
+    print(response)
     return response
 
 
@@ -150,8 +155,10 @@ def get_db_config():
 
 
 if __name__ == '__main__':
-    response = extract_sql_from_file("/Users/guochanglun/erp-mdm/erp-mdm-dao/src/main/resources/base/sql-mapper/BpmMapper.xml")
-    response.pretty_print()
+    response = extract_sql_from_file(
+        "/Users/guochanglun/erp-mdm/erp-mdm-dao/src/main/resources/base/sql-mapper/BpmMapper.xml")
+    print(response)
+
 #     print(get_table_structure('mdm_material_his'))
 #     print(get_table_indexes('mdm_material_his'))
 #     print(get_table_row_count('mdm_material_his'))
